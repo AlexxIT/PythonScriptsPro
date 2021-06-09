@@ -1,4 +1,4 @@
-# Run Python Scripts from Home Assistant
+# Python Scripts for Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 [![Donate](https://img.shields.io/badge/donate-Coffee-yellow.svg)](https://www.buymeacoffee.com/AlexxIT)
@@ -6,24 +6,15 @@
 
 Custom component for easy run Python Scripts from Home Assistant. Better version of default [python_script](https://www.home-assistant.io/integrations/python_script/) component.
 
-## Table of contents
+## Installation
 
-- [Install](#install)
-- [Config](#config)
-- [Use python_script.exec service](#use-python_scriptexec-service)
-  - [Run script from python file](#run-script-from-python-file)
-  - [Run script from inline source](#run-script-from-inline-source)
-  - [Example remote SSH-command run](#example-remote-ssh-command-run)
-  - [Example using hass API](#example-using-hass-api)
-- [Use python_script sensors](#use-python_script-sensors)
+**Method 1.** [HACS](https://hacs.xyz/) custom repo:
 
-## Install
+> HACS > Integrations > 3 dots (upper top corner) > Custom repositories > URL: `AlexxIT/PythonScriptsPro`, Category: Integration > Add > wait > PythonScriptsPro > Install
 
-Install with [HACS](https://hacs.xyz/) custom repo.
+**Method 2.** Manually copy `python_script` folder from [latest release](https://github.com/AlexxIT/PythonScriptsPro/releases/latest) to `/config/custom_components` folder.
 
-Or manually copy `python_script` to `/config/custom_components` folder.
-
-## Config
+## Configuration
 
 **Important:** The component replaces the standard [python_script](https://www.home-assistant.io/integrations/python_script/) component!
 
@@ -91,7 +82,7 @@ script:
   test_source:
     sequence:
     - service: python_script.exec
-      data_template:
+      data:
         title: Python inline test
         source: |
           import requests
