@@ -210,17 +210,17 @@ sensor:
     filename = self.hass.config.path('home-assistant_v2.db')
     self.state = round(os.stat(filename).st_size / 1_000_000, 1)
 
-  - platform: python_script
-    name: Instance external url #more info https://developers.home-assistant.io/docs/instance_url/
-    scan_interval: '01:00:00' # optional
-    source: |
-        from homeassistant.helpers import network
-        try:
-            self.state = network.get_url(
-                self.hass,
-                allow_internal=False,
-            )
-        except network.NoURLAvailableError:
-            raise MyInvalidValueError("Failed to find suitable URL for my integration")
+- platform: python_script
+  name: Instance external url #more info https://developers.home-assistant.io/docs/instance_url/
+  scan_interval: '01:00:00' # optional
+  source: |
+    from homeassistant.helpers import network
+    try:
+      self.state = network.get_url(
+           self.hass,
+           allow_internal=False,
+      )
+    except network.NoURLAvailableError:
+      raise MyInvalidValueError("Failed to find suitable URL for my integration")
 
 ```
