@@ -193,7 +193,7 @@ Python source code are compiled and cached on load. You need to restart Home Ass
 sensor:
 - platform: python_script
   name: My IP address
-  scan_interval: '00:05:00'  # optional
+  scan_interval: '00:05:00'  # optional, default: 30s
   source: |
     import requests
     r = requests.get('https://api.ipify.org?format=json')
@@ -209,4 +209,18 @@ sensor:
     logger.debug("Update DB size")
     filename = self.hass.config.path('home-assistant_v2.db')
     self.state = round(os.stat(filename).st_size / 1_000_000, 1)
+
+- platform: python_script
+  name: Instance external url #more info https://developers.home-assistant.io/docs/instance_url/
+  scan_interval: '01:00:00' # optional
+  source: |
+    from homeassistant.helpers import network
+    try:
+      self.state = network.get_url(
+           self.hass,
+           allow_internal=False,
+      )
+    except network.NoURLAvailableError:
+      raise MyInvalidValueError("Failed to find suitable URL for my integration")
+
 ```
