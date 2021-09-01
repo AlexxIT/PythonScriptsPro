@@ -211,8 +211,8 @@ sensor:
     self.state = round(os.stat(filename).st_size / 1_000_000, 1)
 
 - platform: python_script
-  name: Instance external url #more info https://developers.home-assistant.io/docs/instance_url/
-  scan_interval: '01:00:00' # optional
+  name: Instance external url  # more info https://developers.home-assistant.io/docs/instance_url/
+  scan_interval: '01:00:00'  # optional
   source: |
     from homeassistant.helpers import network
     try:
