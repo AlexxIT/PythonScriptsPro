@@ -117,7 +117,9 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
         else:
             _LOGGER.debug("Load code from cache")
 
-        execute_script(hass, call.data, _LOGGER, code)
+        if call.return_response:
+            return execute_script(hass, call.data, _LOGGER, code) or {}
+        return None
 
     hass.services.async_register(
         DOMAIN,
@@ -130,7 +132,7 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
     return True
 
 
-def execute_script(hass, data, logger, code):
+def execute_script(hass, data, logger, code) -> ServiceResponse:
     """
     Execute a Python script.
 
@@ -148,8 +150,23 @@ def execute_script(hass, data, logger, code):
     """
     try:
         _LOGGER.debug("Run python script")
-        return_response = ""
-        exec(code)
-        return return_response
+        loc_vars = {}
+        exec(code, {}, loc_vars)
+
+        if loc_vars.get("return_response") is not None:
+            service_response: JsonObjectType = {
+                "stdout": loc_vars["return_response"],
+                "stderr": "",
+                "returncode": 0,
+            }
+            return service_response
+        else:
+            return {}
     except Exception as e:
         _LOGGER.exception(f"Error executing script: {e}")
+        service_response: JsonObjectType = {
+            "stdout": "",
+            "stderr": f"Error executing script: {e}",
+            "returncode": 13,
+        }
+        return service_response if e else {}
