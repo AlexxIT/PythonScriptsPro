@@ -42,7 +42,7 @@ PYTHON_SCRIPTS_PRO_SERVICE_SCHEMA = vol.Schema(
 )
 
 
-def md5(data: str):
+def md5(data: str) -> str:
     """
     Calculate the MD5 hash of the input string.
 
@@ -55,7 +55,7 @@ def md5(data: str):
     return hashlib.md5(data.encode()).hexdigest()
 
 
-async def async_setup(hass: HomeAssistantType, hass_config: dict):
+async def async_setup(hass: HomeAssistantType, hass_config: dict) -> bool:
     """
     Asynchronously sets up the integration.
 
@@ -76,13 +76,27 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
 
     def handler(call: ServiceCall) -> ServiceResponse:
         """
-        Executes the handler function for a service call.
+        Handler function for processing a service call.
 
         Args:
-            call (ServiceCall): The service call object containing the data and context of the call.
+            call (ServiceCall): The service call object containing the data for the call.
 
         Returns:
-            ServiceResponse: The response object containing the result of the handler execution.
+            ServiceResponse: The response returned by the function.
+
+        Raises:
+            None
+
+        Description:
+            This function is responsible for handling a service call. It receives a ServiceCall object as the input parameter, which contains the data for the call. The function first checks if the 'file' or 'source' parameter is present in the call data. If neither of them is present, an error message is logged and the function returns without any response.
+
+            If either 'file' or 'source' is present, the function proceeds to retrieve the code from the cache or load it from the file or inline source. If the 'cache' parameter is set to False or the code is not found in the cache, the function loads the code from the specified file or inline source and compiles it.
+
+            If the 'cache' parameter is set to True and the code is loaded from a file, the compiled code is stored in the cache for future use. Similarly, if the code is loaded from an inline source, it is stored in the cache with the source ID as the key.
+
+            If the 'return_response' attribute of the service call is True, the function calls the 'execute_script' function with the necessary parameters and returns the response returned by it. Otherwise, the function returns None.
+
+            Note: This function assumes that the necessary variables, such as '_LOGGER', 'hass', and 'cache_code', are already defined.
         """
         # Run with SyncWorker
         file = call.data.get("file")
@@ -134,19 +148,19 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
 
 def execute_script(hass, data, logger, code) -> ServiceResponse:
     """
-    Execute a Python script.
+    Executes a Python script and returns the service response.
 
     Parameters:
-        hass (object): The Home Assistant Core object.
-        data (object): Additional data passed to the script.
-        logger (object): The logger object used for logging.
-        code (str): The Python code to be executed.
+        - hass: The Home Assistant object.
+        - data: The data passed to the script.
+        - logger: The logger object for logging debug messages.
+        - code: The Python code to be executed.
 
     Returns:
-        str: The response returned by the script.
-
-    Raises:
-        Exception: If there is an error executing the script.
+        - service_response: A dictionary containing the service response. It has the following keys:
+            - stdout: The standard output of the script.
+            - stderr: The standard error of the script.
+            - returncode: The return code of the script.
     """
     try:
         _LOGGER.debug("Run python script")
