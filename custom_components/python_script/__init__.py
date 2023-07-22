@@ -6,7 +6,7 @@ import logging
 
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.typing import HomeAssistantType, ServiceCallType
+from homeassistant.helpers.typing import HomeAssistantType
 from homeassistant.requirements import async_process_requirements
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import (
@@ -43,10 +43,29 @@ PYTHON_SCRIPTS_PRO_SERVICE_SCHEMA = vol.Schema(
 
 
 def md5(data: str):
+    """
+    Calculate the MD5 hash of the input string.
+
+    Args:
+        data (str): The input string to calculate the MD5 hash for.
+
+    Returns:
+        str: The MD5 hash of the input string.
+    """
     return hashlib.md5(data.encode()).hexdigest()
 
 
 async def async_setup(hass: HomeAssistantType, hass_config: dict):
+    """
+    Asynchronously sets up the integration.
+
+    Args:
+        hass (HomeAssistantType): The Home Assistant instance.
+        hass_config (dict): The configuration for the integration.
+
+    Returns:
+        bool: True if the setup was successful, False otherwise.
+    """
     config: dict = hass_config[DOMAIN]
     if CONF_REQUIREMENTS in config:
         hass.async_create_task(
@@ -55,7 +74,16 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
 
     cache_code = {}
 
-    def handler(call: ServiceCallType):
+    def handler(call: ServiceCall) -> ServiceResponse:
+        """
+        Executes the handler function for a service call.
+
+        Args:
+            call (ServiceCall): The service call object containing the data and context of the call.
+
+        Returns:
+            ServiceResponse: The response object containing the result of the handler execution.
+        """
         # Run with SyncWorker
         file = call.data.get("file")
         srcid = md5(call.data["source"]) if "source" in call.data else None
@@ -103,6 +131,21 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
 
 
 def execute_script(hass, data, logger, code):
+    """
+    Execute a Python script.
+
+    Parameters:
+        hass (object): The Home Assistant Core object.
+        data (object): Additional data passed to the script.
+        logger (object): The logger object used for logging.
+        code (str): The Python code to be executed.
+
+    Returns:
+        str: The response returned by the script.
+
+    Raises:
+        Exception: If there is an error executing the script.
+    """
     try:
         _LOGGER.debug("Run python script")
         return_response = ""
