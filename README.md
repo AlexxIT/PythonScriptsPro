@@ -73,7 +73,7 @@ hass.services.call('persistent_notification', 'create', {
 
 ```
 
-### Run script from inline source
+### Run script from inline source and return data
 
 Show your IP address in Notification. Using `requests` library. It is installed by default with Home Assistant.
 
@@ -93,6 +93,7 @@ script:
             'title': data['title'],
             'message': f"My IP: { resp['ip'] }"
           })
+          return_response = resp # return data
 ```
 
 ### Example remote SSH-command run

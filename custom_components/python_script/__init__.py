@@ -8,17 +8,38 @@ import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import HomeAssistantType, ServiceCallType
 from homeassistant.requirements import async_process_requirements
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+)
+from homeassistant.helpers import config_validation as cv, entity_platform, service
+from homeassistant.util.json import JsonObjectType
 
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "python_script"
-CONF_REQUIREMENTS = 'requirements'
+CONF_REQUIREMENTS = "requirements"
 
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Optional(CONF_REQUIREMENTS): cv.ensure_list,
-    })
-}, extra=vol.ALLOW_EXTRA)
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Optional(CONF_REQUIREMENTS): cv.ensure_list,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+PYTHON_SCRIPTS_PRO_SERVICE_SCHEMA = vol.Schema(
+    {
+        vol.Optional("file"): str,
+        vol.Optional("source"): str,
+        vol.Optional("cache"): bool,
+    }
+)
 
 
 def md5(data: str):
@@ -28,17 +49,17 @@ def md5(data: str):
 async def async_setup(hass: HomeAssistantType, hass_config: dict):
     config: dict = hass_config[DOMAIN]
     if CONF_REQUIREMENTS in config:
-        hass.async_create_task(async_process_requirements(
-            hass, DOMAIN, config[CONF_REQUIREMENTS]
-        ))
+        hass.async_create_task(
+            async_process_requirements(hass, DOMAIN, config[CONF_REQUIREMENTS])
+        )
 
     cache_code = {}
 
     def handler(call: ServiceCallType):
         # Run with SyncWorker
-        file = call.data.get('file')
-        srcid = md5(call.data['source']) if 'source' in call.data else None
-        cache = call.data.get('cache', True)
+        file = call.data.get("file")
+        srcid = md5(call.data["source"]) if "source" in call.data else None
+        cache = call.data.get("cache", True)
 
         if not (file or srcid):
             _LOGGER.error("Either file or source is required in params")
@@ -51,8 +72,8 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
                 _LOGGER.debug("Load code from file")
 
                 file = hass.config.path(file)
-                with open(file, encoding='utf-8') as f:
-                    code = compile(f.read(), file, 'exec')
+                with open(file, encoding="utf-8") as f:
+                    code = compile(f.read(), file, "exec")
 
                 if cache:
                     cache_code[file] = code
@@ -60,7 +81,7 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
             else:
                 _LOGGER.debug("Load inline code")
 
-                code = compile(call.data['source'], '<string>', 'exec')
+                code = compile(call.data["source"], "<string>", "exec")
 
                 if cache:
                     cache_code[srcid] = code
@@ -70,7 +91,13 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
 
         execute_script(hass, call.data, _LOGGER, code)
 
-    hass.services.async_register(DOMAIN, "exec", handler)
+    hass.services.async_register(
+        DOMAIN,
+        "exec",
+        handler,
+        PYTHON_SCRIPTS_PRO_SERVICE_SCHEMA,
+        SupportsResponse.OPTIONAL,
+    )
 
     return True
 
@@ -78,6 +105,8 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
 def execute_script(hass, data, logger, code):
     try:
         _LOGGER.debug("Run python script")
+        return_response = ""
         exec(code)
+        return return_response
     except Exception as e:
         _LOGGER.exception(f"Error executing script: {e}")
