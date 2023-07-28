@@ -6,18 +6,17 @@ from homeassistant.helpers.entity import Entity
 logger = logging.getLogger(__name__)
 
 
-async def async_setup_platform(hass, config, add_entities,
-                               discovery_info=None):
+async def async_setup_platform(hass, config, add_entities, discovery_info=None):
     try:
-        if 'file' in config:
-            finename = hass.config.path(config['file'])
-            with open(finename, 'rt', encoding='utf-8') as f:
+        if "file" in config:
+            finename = hass.config.path(config["file"])
+            with open(finename, "rt", encoding="utf-8") as f:
                 source = f.read()
-        elif 'source' in config:
-            source = config['source']
+        elif "source" in config:
+            source = config["source"]
         else:
             return
-        code = compile(source, '<string>', 'exec')
+        code = compile(source, "<string>", "exec")
         add_entities([PythonSensor(code, config)])
 
     except:
