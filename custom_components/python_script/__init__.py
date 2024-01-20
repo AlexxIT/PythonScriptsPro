@@ -12,13 +12,18 @@ from homeassistant.requirements import async_process_requirements
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "python_script"
-CONF_REQUIREMENTS = 'requirements'
+CONF_REQUIREMENTS = "requirements"
 
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Optional(CONF_REQUIREMENTS): cv.ensure_list,
-    })
-}, extra=vol.ALLOW_EXTRA)
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Optional(CONF_REQUIREMENTS): cv.ensure_list,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 
 def md5(data: str):
@@ -28,17 +33,17 @@ def md5(data: str):
 async def async_setup(hass: HomeAssistantType, hass_config: dict):
     config: dict = hass_config[DOMAIN]
     if CONF_REQUIREMENTS in config:
-        hass.async_create_task(async_process_requirements(
-            hass, DOMAIN, config[CONF_REQUIREMENTS]
-        ))
+        hass.async_create_task(
+            async_process_requirements(hass, DOMAIN, config[CONF_REQUIREMENTS])
+        )
 
     cache_code = {}
 
     def handler(call: ServiceCallType):
         # Run with SyncWorker
-        file = call.data.get('file')
-        srcid = md5(call.data['source']) if 'source' in call.data else None
-        cache = call.data.get('cache', True)
+        file = call.data.get("file")
+        srcid = md5(call.data["source"]) if "source" in call.data else None
+        cache = call.data.get("cache", True)
 
         if not (file or srcid):
             _LOGGER.error("Either file or source is required in params")
@@ -51,8 +56,8 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
                 _LOGGER.debug("Load code from file")
 
                 file = hass.config.path(file)
-                with open(file, encoding='utf-8') as f:
-                    code = compile(f.read(), file, 'exec')
+                with open(file, encoding="utf-8") as f:
+                    code = compile(f.read(), file, "exec")
 
                 if cache:
                     cache_code[file] = code
@@ -60,7 +65,7 @@ async def async_setup(hass: HomeAssistantType, hass_config: dict):
             else:
                 _LOGGER.debug("Load inline code")
 
-                code = compile(call.data['source'], '<string>', 'exec')
+                code = compile(call.data["source"], "<string>", "exec")
 
                 if cache:
                     cache_code[srcid] = code
