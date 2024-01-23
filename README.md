@@ -1,18 +1,14 @@
 # Python Scripts for Home Assistant
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-[![Donate](https://img.shields.io/badge/donate-Coffee-yellow.svg)](https://www.buymeacoffee.com/AlexxIT)
-[![Donate](https://img.shields.io/badge/donate-Yandex-red.svg)](https://money.yandex.ru/to/41001428278477)
 
 Custom component for easy run Python Scripts from Home Assistant. Better version of default [python_script](https://www.home-assistant.io/integrations/python_script/) component.
 
 ## Installation
 
-**Method 1.** [HACS](https://hacs.xyz/) custom repo:
+[HACS](https://hacs.xyz/) > Integrations > 3 dots > Custom repositories > URL: `AlexxIT/PythonScriptsPro`, Category: Integration > Add > wait > PythonScriptsPro > Install
 
-> HACS > Integrations > 3 dots (upper top corner) > Custom repositories > URL: `AlexxIT/PythonScriptsPro`, Category: Integration > Add > wait > PythonScriptsPro > Install
-
-**Method 2.** Manually copy `python_script` folder from [latest release](https://github.com/AlexxIT/PythonScriptsPro/releases/latest) to `/config/custom_components` folder.
+Or manually copy `python_script` folder from [latest release](https://github.com/AlexxIT/PythonScriptsPro/releases/latest) to `custom_components` folder.
 
 ## Configuration
 
@@ -40,6 +36,8 @@ python_script:
 - You can **import** and use any library in your python scripts. The standard `python_script` component does not allow this.
 - You can pass any variables to your script, just like in the standard `python_script`.
 - The component compile and caches the executable code for faster next launch. If you want change python file without reload HA, you can disable cache with the `cache: false` param.
+
+Starting from Home Assistant [2023.7](https://www.home-assistant.io/blog/2023/07/05/release-20237/) the service will return all your script local vars with simple types as respond.
 
 The following variables are available in the script:
 - `hass` - The [Home Assistant API](https://www.home-assistant.io/developers/development_hass_object/)
@@ -70,10 +68,10 @@ hass.services.call('persistent_notification', 'create', {
   'title': data['title'],
   'message': f"Home Assistant starts in { data['time_val'] } seconds"
 })
-
+out1 = 123  # some var for service respond
 ```
 
-### Run script from inline source and return data
+### Run script from inline source
 
 Show your IP address in Notification. Using `requests` library. It is installed by default with Home Assistant.
 
@@ -93,7 +91,6 @@ script:
             'title': data['title'],
             'message': f"My IP: { resp['ip'] }"
           })
-          return_response = resp # return data
 ```
 
 ### Example remote SSH-command run
@@ -223,5 +220,4 @@ sensor:
       )
     except network.NoURLAvailableError:
       raise MyInvalidValueError("Failed to find suitable URL for my integration")
-
 ```
