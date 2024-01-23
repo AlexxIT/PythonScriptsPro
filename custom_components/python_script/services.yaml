@@ -1,5 +1,3 @@
-# Describes the format for available python_script services
-
 exec:
   name: Exec
   description: Run python code from file or from source
@@ -8,11 +6,17 @@ exec:
       name: File
       description: Relative path to file (optional)
       example: path_to/filename.py
+      selector:
+        text:
     source:
       name: Source
       description: Source of python script (optional)
       example: "logger.warning('Hello from script')"
+      selector:
+        text:
     cache:
       name: Cache
       description: Use cache when loading code (optional, default true)
       example: true
+      selector:
+        boolean:
