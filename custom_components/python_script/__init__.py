@@ -101,7 +101,7 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
 def execute_script(hass: HomeAssistant, data: dict, logger, code) -> ServiceResponse:
     try:
         _LOGGER.debug("Run python script")
-        exec(code, locals())
+        exec(code, {**globals(), **locals()})
         response = {
             k: v
             for k, v in locals().items()
