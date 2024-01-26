@@ -22,6 +22,7 @@ def test_issue18():
     source = """import requests
 def foobar():
     from requests import session
+foobar()
 out = 123
 """
     code = compile(source, "<string>", "exec")
