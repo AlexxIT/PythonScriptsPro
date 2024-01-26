@@ -1,3 +1,4 @@
+"""Some dummy docs for execute_script."""
 import hashlib
 import logging
 
@@ -101,12 +102,14 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
 def execute_script(hass: HomeAssistant, data: dict, logger, code) -> ServiceResponse:
     try:
         _LOGGER.debug("Run python script")
-        exec(code, {**globals(), **locals()})
+        vars = {**globals(), **locals()}
+        exec(code, vars)
         response = {
             k: v
-            for k, v in locals().items()
+            for k, v in vars.items()
             if isinstance(v, (dict, list, str, int, float, bool))
-            and k not in ("__builtins__", "data")
+            and k not in globals()
+            and k != "data"
             or v is None
         }
         return response
