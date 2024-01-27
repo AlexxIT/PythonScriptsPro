@@ -1,6 +1,9 @@
 """Some dummy docs for execute_script."""
 import hashlib
 import logging
+import os
+import glob
+import ast
 
 import voluptuous as vol
 from homeassistant.core import (
@@ -12,11 +15,15 @@ from homeassistant.core import (
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.requirements import async_process_requirements
+from homeassistant.helpers.service import async_set_service_schema
+from homeassistant.const import CONF_DESCRIPTION, CONF_NAME, SERVICE_RELOAD
 
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "python_script"
 CONF_REQUIREMENTS = "requirements"
+FOLDER = "python_scripts"
+CONF_FIELDS = "fields"
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -54,7 +61,7 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
 
     def handler(call: ServiceCall) -> ServiceResponse:
         # Run with SyncWorker
-        file = call.data.get("file")
+        file = call.data.get("file") if "file" in call.data else f"{hass.config.path(FOLDER)}/{call.service}.py"
         srcid = md5(call.data["source"]) if "source" in call.data else None
         cache = call.data.get("cache", True)
 
@@ -62,7 +69,7 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
             _LOGGER.error("Either file or source is required in params")
             return
 
-        code = cache_code.get(file or srcid)
+        code = cache_code.get(srcid or file)
 
         if not cache or not code:
             if file:
@@ -96,6 +103,14 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
         SupportsResponse.OPTIONAL,
     )
 
+
+    def reload_scripts_handler(call: ServiceCall) -> None:
+        """Handle reload service calls."""
+        discover_scripts(hass, handler)
+    hass.services.async_register(DOMAIN, SERVICE_RELOAD, reload_scripts_handler)
+
+    discover_scripts(hass, handler)
+
     return True
 
 
@@ -109,10 +124,64 @@ def execute_script(hass: HomeAssistant, data: dict, logger, code) -> ServiceResp
             for k, v in vars.items()
             if isinstance(v, (dict, list, str, int, float, bool))
             and k not in globals()
-            and k != "data"
+            and k not in ["data", "NAME", "DESCRIPTION", "FIELDS"]
             or v is None
         }
         return response
     except Exception as e:
         _LOGGER.error(f"Error executing script", exc_info=e)
         return {"error": str(e)}
+
+def discover_scripts(hass, handler):
+    """Discover python scripts in folder."""
+    path = hass.config.path(FOLDER)
+
+    if not os.path.isdir(path):
+        _LOGGER.warning("Folder %s not found in configuration folder", FOLDER)
+        return
+
+    existing = hass.services.async_services().get(DOMAIN, {}).keys()
+    for existing_service in existing:
+        if existing_service == SERVICE_RELOAD:
+            continue
+        if existing_service == "exec":
+            continue
+        hass.services.async_remove(DOMAIN, existing_service)
+
+
+    for fil in glob.iglob(os.path.join(path, "*.py")):
+        try:
+            name = os.path.splitext(os.path.basename(fil))[0]
+            hass.services.async_register(
+                DOMAIN,
+                name,
+                handler,
+                supports_response=SupportsResponse.OPTIONAL,
+            )
+
+            services_dict = {}
+            fields_dict = {}
+            with open(os.path.join(path, f"{name}.py"), 'r') as df:
+                data_file = df.readlines()
+            data_file = ''.join(data_file)
+            tree = ast.parse(data_file)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name) and target.id == 'NAME':
+                            services_dict.update(name = ast.literal_eval(node.value))
+                        if isinstance(target, ast.Name) and target.id == 'DESCRIPTION':
+                            services_dict.update(description = ast.literal_eval(node.value))
+                        if isinstance(target, ast.Name) and target.id == 'FIELDS':
+                            fields_dict = ast.literal_eval(node.value)
+            services_dict.update(fields = fields_dict | {"cache": {"default": True, "selector": {"boolean": ""}}})
+
+            service_desc = {
+                CONF_NAME: services_dict.get("name", name),
+                CONF_DESCRIPTION: services_dict.get("description", ""),
+                CONF_FIELDS: services_dict.get("fields", {}),
+            }
+            async_set_service_schema(hass, DOMAIN, name, service_desc)
+
+        except Exception as err:
+            _LOGGER.warning(f"Error load discover scripts file service: {fil}. Error: {err}")
