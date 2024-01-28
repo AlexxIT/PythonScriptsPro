@@ -2,7 +2,6 @@
 import hashlib
 import logging
 import os
-import glob
 import ast
 
 import voluptuous as vol
@@ -61,7 +60,7 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
 
     def handler(call: ServiceCall) -> ServiceResponse:
         # Run with SyncWorker
-        file = call.data.get("file") if "file" in call.data else f"{hass.config.path(FOLDER)}/{call.service}.py"
+        file = call.data.get("file") if call.service == "exec" else f"{hass.config.path(FOLDER)}/{call.service.replace('_f_', '/')}.py"
         srcid = md5(call.data["source"]) if "source" in call.data else None
         cache = call.data.get("cache", True)
 
@@ -69,7 +68,7 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
             _LOGGER.error("Either file or source is required in params")
             return
 
-        code = cache_code.get(srcid or file)
+        code = cache_code.get(file or srcid)
 
         if not cache or not code:
             if file:
@@ -148,40 +147,41 @@ def discover_scripts(hass, handler):
             continue
         hass.services.async_remove(DOMAIN, existing_service)
 
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith('.py'):
+                try:
+                    name = os.path.splitext(os.path.abspath(os.path.join(root, file)))[0].replace(path, '')[1:].replace('/', '_f_')
+                    hass.services.async_register(
+                        DOMAIN,
+                        name,
+                        handler,
+                        supports_response=SupportsResponse.OPTIONAL,
+                    )
 
-    for fil in glob.iglob(os.path.join(path, "*.py")):
-        try:
-            name = os.path.splitext(os.path.basename(fil))[0]
-            hass.services.async_register(
-                DOMAIN,
-                name,
-                handler,
-                supports_response=SupportsResponse.OPTIONAL,
-            )
+                    services_dict = {}
+                    fields_dict = {}
+                    with open(os.path.join(root, file), 'r') as df:
+                        data_file = df.readlines()
+                    data_file = ''.join(data_file)
+                    tree = ast.parse(data_file)
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.Assign):
+                            for target in node.targets:
+                                if isinstance(target, ast.Name) and target.id == 'NAME':
+                                    services_dict.update(name = ast.literal_eval(node.value))
+                                if isinstance(target, ast.Name) and target.id == 'DESCRIPTION':
+                                    services_dict.update(description = ast.literal_eval(node.value))
+                                if isinstance(target, ast.Name) and target.id == 'FIELDS':
+                                    fields_dict = ast.literal_eval(node.value)
+                    services_dict.update(fields = fields_dict | {"cache": {"default": True, "selector": {"boolean": ""}}})
 
-            services_dict = {}
-            fields_dict = {}
-            with open(os.path.join(path, f"{name}.py"), 'r') as df:
-                data_file = df.readlines()
-            data_file = ''.join(data_file)
-            tree = ast.parse(data_file)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Assign):
-                    for target in node.targets:
-                        if isinstance(target, ast.Name) and target.id == 'NAME':
-                            services_dict.update(name = ast.literal_eval(node.value))
-                        if isinstance(target, ast.Name) and target.id == 'DESCRIPTION':
-                            services_dict.update(description = ast.literal_eval(node.value))
-                        if isinstance(target, ast.Name) and target.id == 'FIELDS':
-                            fields_dict = ast.literal_eval(node.value)
-            services_dict.update(fields = fields_dict | {"cache": {"default": True, "selector": {"boolean": ""}}})
+                    service_desc = {
+                        CONF_NAME: services_dict.get("NAME", name),
+                        CONF_DESCRIPTION: services_dict.get("DESCRIPTION", ""),
+                        CONF_FIELDS: services_dict.get("FIELDS", {}),
+                    }
+                    async_set_service_schema(hass, DOMAIN, name, service_desc)
 
-            service_desc = {
-                CONF_NAME: services_dict.get("name", name),
-                CONF_DESCRIPTION: services_dict.get("description", ""),
-                CONF_FIELDS: services_dict.get("fields", {}),
-            }
-            async_set_service_schema(hass, DOMAIN, name, service_desc)
-
-        except Exception as err:
-            _LOGGER.warning(f"Error load discover scripts file service: {fil}. Error: {err}")
+                except Exception as err:
+                    _LOGGER.warning(f"Error load discover scripts file service: {file}. Error: {err}")
