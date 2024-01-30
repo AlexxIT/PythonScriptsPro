@@ -177,9 +177,9 @@ def discover_scripts(hass, handler):
                     services_dict.update(fields = fields_dict | {"cache": {"default": True, "selector": {"boolean": ""}}})
 
                     service_desc = {
-                        CONF_NAME: services_dict.get("NAME", name),
-                        CONF_DESCRIPTION: services_dict.get("DESCRIPTION", ""),
-                        CONF_FIELDS: services_dict.get("FIELDS", {}),
+                        CONF_NAME: services_dict.get("name", name),
+                        CONF_DESCRIPTION: services_dict.get("description", ""),
+                        CONF_FIELDS: services_dict.get("fields", {}),
                     }
                     async_set_service_schema(hass, DOMAIN, name, service_desc)
 
