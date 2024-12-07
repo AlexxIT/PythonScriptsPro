@@ -40,6 +40,7 @@ async def async_setup_platform(
 class PythonSensor(Entity):
     def __init__(self, code, config: dict):
         self.code = code
+        self.config = config
         self.attributes = {}
 
         self._attr_device_class = config.get(CONF_DEVICE_CLASS)
