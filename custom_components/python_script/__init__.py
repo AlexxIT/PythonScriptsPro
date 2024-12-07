@@ -1,4 +1,3 @@
-"""Some dummy docs for execute_script."""
 import hashlib
 import logging
 
@@ -10,6 +9,7 @@ from homeassistant.core import (
     SupportsResponse,
 )
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.json import JSON_DUMP
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.requirements import async_process_requirements
 
@@ -105,14 +105,24 @@ def execute_script(hass: HomeAssistant, data: dict, logger, code) -> ServiceResp
         vars = {**globals(), **locals()}
         exec(code, vars)
         response = {
-            k: v
-            for k, v in vars.items()
-            if isinstance(v, (dict, list, str, int, float, bool))
-            and k not in globals()
-            and k != "data"
-            or v is None
+            k: v for k, v in vars.items() if k not in globals() and simple_type(v)
         }
         return response
     except Exception as e:
         _LOGGER.error(f"Error executing script", exc_info=e)
         return {"error": str(e)}
+
+
+def simple_type(value) -> bool:
+    """Can be converted to JSON."""
+    # https://github.com/AlexxIT/PythonScriptsPro/issues/26
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return True
+
+    if isinstance(value, (dict, list)):
+        try:
+            return JSON_DUMP(value) is not None
+        except TypeError:
+            pass
+
+    return False
