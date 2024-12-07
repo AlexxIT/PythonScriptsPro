@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import traceback
 
 import voluptuous as vol
 from homeassistant.core import (
@@ -110,7 +111,7 @@ def execute_script(hass, data, context, logger, code) -> ServiceResponse:
         return response
     except Exception as e:
         _LOGGER.error(f"Error executing script", exc_info=e)
-        return {"error": str(e)}
+        return {"error": str(e), "traceback": "".join(traceback.format_exception(e))}
 
 
 def simple_type(value) -> bool:
