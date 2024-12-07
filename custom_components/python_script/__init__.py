@@ -86,7 +86,7 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
         else:
             _LOGGER.debug("Load code from cache")
 
-        return execute_script(hass, call.data, _LOGGER, code)
+        return execute_script(hass, call.data, call.context, _LOGGER, code)
 
     hass.services.async_register(
         DOMAIN,
@@ -99,7 +99,7 @@ async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
     return True
 
 
-def execute_script(hass: HomeAssistant, data: dict, logger, code) -> ServiceResponse:
+def execute_script(hass, data, context, logger, code) -> ServiceResponse:
     try:
         _LOGGER.debug("Run python script")
         vars = {**globals(), **locals()}
