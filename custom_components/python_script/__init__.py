@@ -45,7 +45,7 @@ def md5(data: str) -> str:
 
 
 async def async_setup(hass: HomeAssistant, hass_config: ConfigType):
-    config: dict = hass_config[DOMAIN]
+    config: dict = hass_config.get(DOMAIN) or {}
     if CONF_REQUIREMENTS in config:
         hass.async_create_task(
             async_process_requirements(hass, DOMAIN, config[CONF_REQUIREMENTS])
