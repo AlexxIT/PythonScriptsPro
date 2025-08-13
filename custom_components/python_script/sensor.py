@@ -24,8 +24,12 @@ async def async_setup_platform(
     try:
         if "file" in config:
             finename = hass.config.path(config["file"])
-            with open(finename, "rt", encoding="utf-8") as f:
-                source = f.read()
+
+            def sync_file_read() -> str:
+                with open(finename, "rt", encoding="utf-8") as f:
+                    return f.read()
+
+            source = await hass.async_add_executor_job(sync_file_read)
         elif "source" in config:
             source = config["source"]
         else:
