@@ -3,6 +3,7 @@ import logging
 import traceback
 
 import voluptuous as vol
+from homeassistant.const import CONF_DEVICE_CLASS, CONF_ICON, CONF_NAME, CONF_UNIQUE_ID
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -10,6 +11,7 @@ from homeassistant.core import (
     SupportsResponse,
 )
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.json import JSON_DUMP
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.requirements import async_process_requirements
@@ -127,3 +129,43 @@ def simple_type(value) -> bool:
             pass
 
     return False
+
+
+def compile_script(hass: HomeAssistant, config: dict):
+    try:
+        if "file" in config:
+            filename = hass.config.path(config["file"])
+            with open(filename, "rt", encoding="utf-8") as f:
+                return compile(f.read(), filename, "exec")
+
+        if "source" in config:
+            return compile(config["source"], "<string>", "exec")
+
+    except Exception as e:
+        _LOGGER.error("Error init python script sensor", exc_info=e)
+
+
+class PythonEntity(Entity):
+    def __init__(self, code, config: dict):
+        self.code = code
+        self.config = config
+
+        self._attr_device_class = config.get(CONF_DEVICE_CLASS)
+        self._attr_extra_state_attributes = {}
+        self._attr_icon = config.get(CONF_ICON)
+        self._attr_name = config.get(CONF_NAME)
+        self._attr_unique_id = config.get(CONF_UNIQUE_ID)
+
+    @property
+    def attributes(self):
+        return self._attr_extra_state_attributes
+
+    @attributes.setter
+    def attributes(self, value):
+        self._attr_extra_state_attributes = value
+
+    def update(self):
+        try:
+            exec(self.code)
+        except Exception as e:
+            _LOGGER.error(f"Error update {self.name}", exc_info=e)
