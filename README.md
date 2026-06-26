@@ -6,9 +6,11 @@ Custom component for easy run Python Scripts from Home Assistant. Better version
 
 ## Installation
 
-[HACS](https://hacs.xyz/) > Integrations > 3 dots > Custom repositories > URL: `AlexxIT/PythonScriptsPro`, Category: Integration > Add > wait > PythonScriptsPro > Install
+[![](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=AlexxIT&repository=PythonScriptsPro&category=Integration)
 
-Or manually copy `python_script` folder from [latest release](https://github.com/AlexxIT/PythonScriptsPro/releases/latest) to `custom_components` folder.
+**Method 1.** [HACS](https://hacs.xyz/) > Custom repositories > `AlexxIT/PythonScriptsPro` / Integration > Install
+
+**Method 2.** Manually copy `python_script` folder from [latest release](https://github.com/AlexxIT/PythonScriptsPro/releases/latest) to `custom_components` folder.
 
 ## Configuration
 
