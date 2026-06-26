@@ -223,3 +223,100 @@ sensor:
     except network.NoURLAvailableError:
       raise MyInvalidValueError("Failed to find suitable URL for my integration")
 ```
+
+### Examples
+
+Scripts for managing a noname router.
+
+```yaml
+script:
+  reboot_main_router:
+    alias: Reboot main router
+    sequence:
+    - action: python_script.exec
+      data:
+        source: |
+          import requests
+          from requests.auth import HTTPDigestAuth
+          requests.post(
+            'http://192.168.1.1/ci',
+             auth=HTTPDigestAuth('admin', 'admin'),
+             data='<request id="0"><command name="system reboot"/></request>',
+             headers={'Content-Type': 'application/xml'}
+          )
+
+  reboot_internet:
+    alias: Reboot main internet
+    sequence:
+    - action: python_script.exec
+      data:
+        source: |
+          import random
+          import requests
+          from requests.auth import HTTPDigestAuth
+          x = random.randint(1000, 1100)
+          requests.post(
+            'http://192.168.1.1/ci',
+            auth=HTTPDigestAuth('admin', 'admin'),
+            data=f'<request id="0"><command name="interface ip global"><name>PPPoE0</name><priority>{x}</priority></command></request><request id="1"><command name="system config-save"/></request>',
+            headers={'Content-Type': 'application/xml'}
+          )
+```
+
+Scripts for managing Mikrotik router.
+
+```yaml
+  reboot_wifi:
+    alias: Reboot Mikrotik Wi-Fi
+    sequence:
+    - action: python_script.exec
+      data:
+        pass: !secret router_pass
+        source: |
+          from paramiko import SSHClient, AutoAddPolicy
+
+          client = SSHClient()
+          client.set_missing_host_key_policy(AutoAddPolicy())
+          client.connect('192.168.10.1', 22, 'admin', data['pass'])
+          client.exec_command('/interface wireless set wlan1 disabled=yes')
+          client.exec_command('/interface wireless set wlan1 disabled=no')
+          client.close()
+
+  update_cloud_ip:
+    alias: Update Mikrotik Cloud IP
+    sequence:
+    - action: python_script.exec
+      data:
+        pass: !secret router_pass
+        source: |
+          from paramiko import SSHClient, AutoAddPolicy
+
+          client = SSHClient()
+          client.set_missing_host_key_policy(AutoAddPolicy())
+          client.connect('192.168.10.1', 22, 'admin', data['pass'])
+          client.exec_command('/ip cloud force-update')
+          client.close()
+```
+
+Binary sensor to determine if a public port is open on Transmission.
+
+```yaml
+binary_sensor:
+- platform: python_script
+  name: Open Port
+  device_class: connectivity
+  source: |
+    import requests
+    r = requests.get("http://192.168.10.2:9091/transmission/rpc")
+    r = requests.post(
+        r.url,
+        headers={"X-Transmission-Session-Id": r.headers["X-Transmission-Session-Id"]},
+        json={
+            "id": "webui",
+            "jsonrpc": "2.0",
+            "method": "port_test",
+            "params": {"ip_protocol": "ipv4"},
+        },
+    )
+    self.state = r.json()["result"]["port_is_open"]
+```
